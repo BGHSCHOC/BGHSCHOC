@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Debug Tool - CHOC</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .debug-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .status-good {
+            color: #059669;
+            font-weight: bold;
+        }
+
+        .status-bad {
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        .status-warning {
+            color: #d97706;
+            font-weight: bold;
+        }
+
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        .code-block {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            margin: 10px 0;
+            border: 1px solid #e9ecef;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🎨 CSS Debug Tool - CHOC</h1>
+    <p>This tool helps diagnose why your CSS isn't loading properly.</p>
+
+    <div class="debug-section">
+        <h3>🔍 CSS Loading Diagnostics</h3>
+        <button onclick="runCSSCheck()">Check CSS Loading</button>
+        <button onclick="testCSSPath()">Test CSS File Path</button>
+        <button onclick="checkServerConfig()">Check Server Config</button>
+        <div id="css-output"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>⚡ Quick Fixes</h3>
+        <button onclick="inlineCSS()">Apply Inline CSS Fix</button>
+        <button onclick="reloadCSS()">Force Reload CSS</button>
+        <button onclick="checkNetworkTab()">Check Network Tab Instructions</button>
+        <div id="fixes-output"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>📊 File Structure Check</h3>
+        <button onclick="checkFileStructure()">Verify File Structure</button>
+        <div id="structure-output"></div>
+    </div>
+
+    <script>
+        function updateOutput(elementId, message, className = '') {
+            const output = document.getElementById(elementId);
+            const div = document.createElement('div');
+            div.className = className;
+            div.innerHTML = message;
+            output.appendChild(div);
+        }
+
+        function runCSSCheck() {
+            const output = document.getElementById('css-output');
+            output.innerHTML = '<h4>🔍 CSS Loading Analysis...</h4>';
+
+            // Check if CSS file is linked
+            const cssLinks = document.querySelectorAll('link[rel="stylesheet"]');
+            updateOutput('css-output', `Found ${cssLinks.length} CSS links in current page`, 'status-good');
+
+            // Check for styles.css specifically
+            let stylesFound = false;
+            cssLinks.forEach((link, index) => {
+                updateOutput('css-output', `Link ${index + 1}: ${link.href}`, 'status-good');
+                if (link.href.includes('styles.css')) {
+                    stylesFound = true;
+                }
+            });
+
+            if (!stylesFound) {
+                updateOutput('css-output', '❌ styles.css link not found in this page', 'status-bad');
+                updateOutput('css-output', '💡 This debug page has its own CSS. Check the main index.html page.', 'status-warning');
+            }
+
+            // Test CSS loading
+            fetch('/styles.css')
+                .then(response => {
+                    if (response.ok) {
+                        updateOutput('css-output', '✅ styles.css file is accessible from server', 'status-good');
+                        return response.text();
+                    } else {
+                        updateOutput('css-output', `❌ styles.css returned ${response.status} ${response.statusText}`, 'status-bad');
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                })
+                .then(cssContent => {
+                    updateOutput('css-output', `✅ CSS file size: ${cssContent.length} characters`, 'status-good');
+                    if (cssContent.length < 100) {
+                        updateOutput('css-output', '⚠️ CSS file seems very small - might be empty or corrupted', 'status-warning');
+                    }
+                })
+                .catch(error => {
+                    updateOutput('css-output', `❌ Failed to load styles.css: ${error.message}`, 'status-bad');
+                    updateOutput('css-output', '💡 Possible causes: File missing, server not serving static files, or path incorrect', 'status-warning');
+                });
+        }
+
+        function testCSSPath() {
+            const output = document.getElementById('css-output');
+            output.innerHTML += '<h4>🔗 Testing CSS Paths...</h4>';
+
+            const pathsToTest = [
+                '/styles.css',
+                './styles.css',
+                'styles.css',
+                '/css/styles.css',
+                './css/styles.css'
+            ];
+
+            pathsToTest.forEach(path => {
+                fetch(path)
+                    .then(response => {
+                        if (response.ok) {
+                            updateOutput('css-output', `✅ Found CSS at: ${path}`, 'status-good');
+                        } else {
+                            updateOutput('css-output', `❌ Not found at: ${path} (${response.status})`, 'status-bad');
+                        }
+                    })
+                    .catch(error => {
+                        updateOutput('css-output', `❌ Error testing ${path}: ${error.message}`, 'status-bad');
+                    });
+            });
+        }
+
+        function checkServerConfig() {
+            const output = document.getElementById('css-output');
+            output.innerHTML += '<h4>🌐 Server Configuration Check...</h4>';
+
+            // Test if server is serving static files
+            fetch('/package.json')
+                .then(response => {
+                    if (response.ok) {
+                        updateOutput('css-output', '✅ Server is serving static files (package.json accessible)', 'status-good');
+                    } else {
+                        updateOutput('css-output', '❌ Server may not be serving static files properly', 'status-bad');
+                    }
+                })
+                .catch(error => {
+                    updateOutput('css-output', '❌ Server static file serving issue', 'status-bad');
+                });
+
+            // Check current URL
+            updateOutput('css-output', `Current URL: ${window.location.href}`, 'status-good');
+            updateOutput('css-output', `Expected CSS URL: ${window.location.origin}/styles.css`, 'status-good');
+        }
+
+        function inlineCSS() {
+            const output = document.getElementById('fixes-output');
+            output.innerHTML = '<h4>⚡ Applying Inline CSS Fix...</h4>';
+
+            // Create a temporary fix by adding basic styles inline
+            const style = document.createElement('style');
+            style.textContent = `
+                /* Temporary CSS Fix for CHOC */
+                body {
+                    font-family: 'Comic Sans MS', Arial, sans-serif;
+                    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+                    margin: 0;
+                    padding: 0;
+                    min-height: 100vh;
+                }
+                .container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }
+                header {
+                    text-align: center;
+                    background: linear-gradient(135deg, #42a5f5, #ab47bc);
+                    color: white;
+                    padding: 20px;
+                    border-radius: 15px;
+                    margin-bottom: 20px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                }
+                header h1 {
+                    margin: 0;
+                    font-size: 2.5em;
+                    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                }
+                .status-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                    gap: 20px;
+                    margin: 20px 0;
+                }
+                .status-card {
+                    background: white;
+                    padding: 20px;
+                    border-radius: 15px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    border: 3px solid #e1f5fe;
+                }
+                .action-btn {
+                    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                    color: white;
+                    border: none;
+                    padding: 15px 30px;
+                    border-radius: 12px;
+                    font-size: 1.1em;
+                    cursor: pointer;
+                    margin: 10px;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+                }
+                .action-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+                }
+                .action-btn:disabled {
+                    background: #9ca3af;
+                    cursor: not-allowed;
+                    opacity: 0.6;
+                }
+                .main-actions {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 15px;
+                    align-items: center;
+                    margin: 30px 0;
+                }
+                .welcome-header {
+                    text-align: center;
+                    margin: 20px 0;
+                    padding: 20px;
+                    background: linear-gradient(135deg, #fce4ec, #f3e5f5);
+                    border-radius: 15px;
+                    border: 3px solid #f8bbd9;
+                }
+                .welcome-title {
+                    font-size: 2em;
+                    margin: 0;
+                    color: #880e4f;
+                }
+                .hidden {
+                    display: none !important;
+                }
+                #status-bar {
+                    display: flex;
+                    justify-content: space-between;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                    margin-top: 10px;
+                    padding: 10px;
+                    background: rgba(255,255,255,0.2);
+                    border-radius: 8px;
+                    font-size: 0.9em;
+                }
+            `;
+            document.head.appendChild(style);
+
+            updateOutput('fixes-output', '✅ Temporary inline CSS applied!', 'status-good');
+            updateOutput('fixes-output', '🔄 Refresh the main page (/) to see the styled version', 'status-warning');
+            updateOutput('fixes-output', '⚠️ This is a temporary fix. You still need to fix the styles.css loading issue.', 'status-warning');
+        }
+
+        function reloadCSS() {
+            const output = document.getElementById('fixes-output');
+            output.innerHTML = '<h4>🔄 Force Reloading CSS...</h4>';
+
+            // Remove existing CSS links
+            const existingLinks = document.querySelectorAll('link[rel="stylesheet"]');
+            existingLinks.forEach(link => {
+                if (link.href.includes('styles.css')) {
+                    link.remove();
+                    updateOutput('fixes-output', '🗑️ Removed existing styles.css link', 'status-good');
+                }
+            });
+
+            // Add new CSS link with cache busting
+            const newLink = document.createElement('link');
+            newLink.rel = 'stylesheet';
+            newLink.href = '/styles.css?v=' + Date.now();
+            document.head.appendChild(newLink);
+
+            updateOutput('fixes-output', '✅ Added new CSS link with cache busting', 'status-good');
+            updateOutput('fixes-output', '⏳ Wait a moment for CSS to load...', 'status-warning');
+
+            // Check if it loaded
+            setTimeout(() => {
+                const testElement = document.createElement('div');
+                testElement.className = 'container';
+                document.body.appendChild(testElement);
+                const styles = window.getComputedStyle(testElement);
+
+                if (styles.maxWidth && styles.maxWidth !== 'none') {
+                    updateOutput('fixes-output', '✅ CSS appears to be loading now!', 'status-good');
+                } else {
+                    updateOutput('fixes-output', '❌ CSS still not loading properly', 'status-bad');
+                }
+
+                document.body.removeChild(testElement);
+            }, 2000);
+        }
+
+        function checkNetworkTab() {
+            const output = document.getElementById('fixes-output');
+            output.innerHTML = '<h4>🔍 Network Tab Instructions...</h4>';
+
+            const instructions = `
+<div class="code-block">📋 How to Check Network Tab:
+
+1. Open Browser Developer Tools:
+   • Chrome/Edge: Press F12 or Ctrl+Shift+I
+   • Firefox: Press F12 or Ctrl+Shift+I
+   • Safari: Press Cmd+Option+I
+
+2. Click the "Network" tab
+
+3. Refresh the page (F5 or Ctrl+R)
+
+4. Look for "styles.css" in the list:
+   ✅ If you see it with status 200: CSS file is loading
+   ❌ If you see it with status 404: CSS file not found
+   ❌ If you don't see it at all: CSS link is broken
+
+5. Click on styles.css entry to see details:
+   • Check the Response tab to see if CSS content is there
+   • Check the Headers tab for any error messages
+
+Common Issues:
+• 404 Not Found: styles.css file is missing from server
+• 403 Forbidden: Server permissions issue
+• MIME type error: Server not recognizing .css files
+• Empty response: CSS file exists but is empty</div>`;
+
+            updateOutput('fixes-output', instructions, 'status-good');
+        }
+
+        function checkFileStructure() {
+            const output = document.getElementById('structure-output');
+            output.innerHTML = '<h4>📁 File Structure Verification...</h4>';
+
+            // Test for common files
+            const filesToCheck = [
+                'index.html',
+                'styles.css',
+                'script.js',
+                'server.js',
+                'package.json'
+            ];
+
+            filesToCheck.forEach(file => {
+                fetch(`/${file}`)
+                    .then(response => {
+                        if (response.ok) {
+                            updateOutput('structure-output', `✅ ${file} - Found`, 'status-good');
+                        } else {
+                            updateOutput('structure-output', `❌ ${file} - Not found (${response.status})`, 'status-bad');
+                        }
+                    })
+                    .catch(error => {
+                        updateOutput('structure-output', `❌ ${file} - Error: ${error.message}`, 'status-bad');
+                    });
+            });
+
+            const expectedStructure = `
+<div class="code-block">📁 Expected File Structure:
+
+project-root/
+├── index.html          ← Main page
+├── styles.css          ← CSS styles (THIS IS MISSING!)
+├── script.js           ← JavaScript
+├── server.js           ← Node.js server
+├── package.json        ← Dependencies
+├── Procfile           ← Render config
+└── render.yaml        ← Render config
+
+🔧 If styles.css is missing:
+1. Make sure you uploaded it to GitHub
+2. Check it's in the root directory (same level as index.html)
+3. Verify the filename is exactly "styles.css" (case-sensitive)
+4. Redeploy your application</div>`;
+
+            updateOutput('structure-output', expectedStructure, 'status-warning');
+        }
+
+        // Auto-run basic check on load
+        window.addEventListener('load', () => {
+            setTimeout(runCSSCheck, 1000);
+        });
+    </script>
+</body>
+
+</html>
