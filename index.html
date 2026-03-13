@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CHOC Meeting Sign-In Portal</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>BGHS CHOC</h1>
+            <p>Meeting Sign-In Portal</p>
+            <p style="font-size: 0.9em; margin: 5px 0;">Room 316 • 2025-2026</p>
+            <div id="status-bar">
+                <span id="current-time"></span>
+                <span id="sign-in-status">Sign-in: Closed</span>
+                <span id="sync-indicator" style="font-size: 0.8em; color: #dc2626;">❌ Disconnected</span>
+            </div>
+        </header>
+
+        <!-- Officer Login Modal -->
+        <div id="officer-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>🏥 CHOC Access Portal</h2>
+                <p style="font-size: 0.9em; color: #6c757d; margin-bottom: 15px;">
+                    Enter your access code:<br>
+                    • Officer Access: Basic controls<br>
+                    • Administration: Advanced settings
+                </p>
+                <input type="password" id="officer-code" placeholder="Enter access code">
+                <button onclick="verifyOfficer()">Access</button>
+            </div>
+        </div>
+
+        <!-- Officer Dashboard -->
+        <div id="officer-dashboard" class="hidden">
+            <h2>🏥 CHOC Officer Dashboard</h2>
+            <button onclick="backToMainMenu()" style="margin-bottom: 20px;">← Back to Main Menu</button>
+            <div class="dashboard-section">
+                <h3>Member Sign-In Window Control</h3>
+                <label>Start Time: <input type="time" id="start-time"></label>
+                <label>End Time: <input type="time" id="end-time"></label>
+                <button onclick="updateSignInWindow()">📅 Update Window</button>
+                <button onclick="toggleSignIn()" id="toggle-btn">🔄 Enable Sign-In</button>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>Member Management</h3>
+                <button onclick="viewMembers()">👥 View Members</button>
+                <button onclick="clearMembers()">🗑️ Clear All Members</button>
+                <button onclick="exportSpreadsheet()">📊 Export Spreadsheet</button>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>Volunteer Management</h3>
+                <button onclick="viewActiveVolunteers()">🤝 View Active Volunteers</button>
+                <button onclick="viewVolunteerSessions()">📋 View Volunteer Sessions</button>
+                <button onclick="exportVolunteerData()">📊 Export Volunteer Data</button>
+                <button onclick="clearVolunteerData()" style="background: #dc2626; margin-top: 10px;">🗑️ Clear All
+                    Volunteer Data</button>
+                <p style="font-size: 0.9em; color: #6c757d; margin-top: 10px;">
+                    Clear All Volunteer Data will remove both active volunteers and completed sessions.
+                </p>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>Device Security</h3>
+                <button onclick="resetDeviceSignIns()">🔄 Reset Device Sign-ins</button>
+                <p style="font-size: 0.9em; color: #6c757d; margin-top: 10px;">
+                    Clears the list of devices that have signed in, allowing them to sign in again.
+                </p>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>Meeting Location Description</h3>
+                <div style="margin-bottom: 15px;">
+                    <label for="location-description" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                        📍 Meeting Location Description:
+                    </label>
+                    <textarea id="location-description" placeholder="e.g., Room 316, Building A, Second Floor"
+                        style="width: 100%; height: 80px; padding: 12px; border: 2px solid #3b82f6; border-radius: 8px; font-size: 14px; resize: vertical; font-family: Arial, sans-serif;"></textarea>
+                    <button onclick="updateLocationDescription()" style="margin-top: 10px;">📝 Update
+                        Description</button>
+                </div>
+                <div id="current-description-display"
+                    style="padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6; font-size: 0.9em; color: #1e40af;">
+                    Current description: Not set
+                </div>
+                <p style="font-size: 0.9em; color: #6c757d; margin-top: 10px;">
+                    This description will be shown to members on the main screen to help them find the meeting location.
+                </p>
+            </div>
+
+            <div id="member-list" class="member-list hidden">
+                <h4>🧡 Registered Members</h4>
+                <div id="members-container"></div>
+            </div>
+
+            <div id="volunteer-list" class="member-list hidden">
+                <h4>🤝 Active Volunteers</h4>
+                <div id="volunteers-container"></div>
+            </div>
+
+            <div id="volunteer-sessions-list" class="member-list hidden">
+                <h4>📋 Volunteer Sessions</h4>
+                <div id="volunteer-sessions-container"></div>
+            </div>
+        </div>
+
+        <!-- Administration Dashboard -->
+        <div id="admin-dashboard" class="hidden">
+            <h2>🔐 CHOC Administration</h2>
+            <button onclick="backToMainMenu()" style="margin-bottom: 20px;">← Back to Main Menu</button>
+
+            <div class="dashboard-section">
+                <h3>Proximity Monitoring</h3>
+                <button onclick="viewProximityData()">📍 View Member Locations</button>
+                <button onclick="refreshProximityData()">🔄 Refresh Proximity</button>
+                <button onclick="clearProximityData()">🗑️ Clear Location Data</button>
+                <div id="proximity-info"
+                    style="margin-top: 15px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6; font-size: 0.9em; color: #1e40af;">
+                    Click "View Member Locations" to see proximity data for signed-in members.
+                </div>
+                <p style="font-size: 0.9em; color: #6c757d; margin-top: 10px;">
+                    Monitor how far members are from the meeting location when they signed in. Helps verify attendance
+                    authenticity.
+                </p>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>Geofencing Control</h3>
+                <button onclick="setMeetingLocation()" id="location-btn">📍 Set Meeting Location</button>
+                <button onclick="toggleGeofencing()" id="geofence-btn">🔒 Enable Geofencing</button>
+
+                <div style="margin: 15px 0;">
+                    <label for="distance-slider" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                        📏 Maximum Distance: <span id="distance-value">100</span> meters
+                    </label>
+                    <input type="range" id="distance-slider" min="10" max="500" value="100" step="10"
+                        style="width: 100%; margin-bottom: 5px;" oninput="updateGeofenceDistance()"
+                        onchange="updateGeofenceDistance()">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #6c757d;">
+                        <span>10m</span>
+                        <span>500m</span>
+                    </div>
+                </div>
+
+                <div id="location-info"
+                    style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 0.9em;">
+                    <div id="current-location-display">Current location: Not set</div>
+                    <div id="geofence-status">Geofencing: Disabled</div>
+                </div>
+                <p style="font-size: 0.9em; color: #6c757d; margin-top: 10px;">
+                    Restricts sign-ins to within the specified distance of the meeting location. Settings sync
+                    automatically across all devices.
+                </p>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>System Configuration</h3>
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin-bottom: 10px;">Password Management</h4>
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Officer Password:</label>
+                        <input type="password" id="new-officer-password" placeholder="Enter new officer password"
+                            style="width: 70%; padding: 8px; margin-right: 10px; border: 2px solid #3b82f6; border-radius: 6px;">
+                        <button onclick="updateOfficerPassword()" style="padding: 8px 15px;">Update</button>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Admin Password:</label>
+                        <input type="password" id="new-admin-password" placeholder="Enter new admin password"
+                            style="width: 70%; padding: 8px; margin-right: 10px; border: 2px solid #3b82f6; border-radius: 6px;">
+                        <button onclick="updateAdminPassword()" style="padding: 8px 15px;">Update</button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin-bottom: 10px;">Data Management</h4>
+                    <button onclick="backupData()" style="margin-right: 10px;">💾 Backup Data</button>
+                    <button onclick="restoreData()" style="margin-right: 10px;">📂 Restore Data</button>
+                    <input type="file" id="restore-file" accept=".json" style="display: none;"
+                        onchange="handleRestoreFile(event)">
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin-bottom: 10px;">System Settings</h4>
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Session Timeout
+                            (minutes):</label>
+                        <input type="number" id="session-timeout" min="5" max="480" value="60"
+                            style="width: 100px; padding: 8px; margin-right: 10px; border: 2px solid #3b82f6; border-radius: 6px;">
+                        <button onclick="updateSessionTimeout()" style="padding: 8px 15px;">Update</button>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Security Policy:</label>
+                        <select id="security-policy"
+                            style="padding: 8px; margin-right: 10px; border: 2px solid #3b82f6; border-radius: 6px;">
+                            <option value="standard">Standard Security</option>
+                            <option value="high">High Security</option>
+                            <option value="maximum">Maximum Security</option>
+                        </select>
+                        <button onclick="updateSecurityPolicy()" style="padding: 8px 15px;">Update</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>Advanced Member Management</h3>
+                <button onclick="viewMemberProfiles()" style="margin-right: 10px;">👤 Member Profiles</button>
+                <button onclick="viewAttendanceHistory()" style="margin-right: 10px;">📊 Attendance History</button>
+                <button onclick="manageBlacklist()" style="margin-right: 10px;">🚫 Manage Blacklist</button>
+
+                <div id="member-profiles" class="hidden" style="margin-top: 15px;">
+                    <h4>Member Profiles</h4>
+                    <div id="profiles-container"></div>
+                </div>
+
+                <div id="attendance-history" class="hidden" style="margin-top: 15px;">
+                    <h4>Attendance History</h4>
+                    <div style="margin-bottom: 10px;">
+                        <input type="text" id="search-member" placeholder="Search by name or student ID"
+                            style="width: 70%; padding: 8px; margin-right: 10px; border: 2px solid #3b82f6; border-radius: 6px;">
+                        <button onclick="searchAttendanceHistory()" style="padding: 8px 15px;">Search</button>
+                    </div>
+                    <div id="history-container"></div>
+                </div>
+
+                <div id="blacklist-management" class="hidden" style="margin-top: 15px;">
+                    <h4>Blacklist Management</h4>
+                    <div style="margin-bottom: 10px;">
+                        <input type="text" id="blacklist-student-id" placeholder="Student ID to blacklist"
+                            style="width: 50%; padding: 8px; margin-right: 10px; border: 2px solid #3b82f6; border-radius: 6px;">
+                        <input type="text" id="blacklist-reason" placeholder="Reason"
+                            style="width: 30%; padding: 8px; margin-right: 10px; border: 2px solid #3b82f6; border-radius: 6px;">
+                        <button onclick="addToBlacklist()" style="padding: 8px 15px;">Add</button>
+                    </div>
+                    <div id="blacklist-container"></div>
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>Alert System</h3>
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin-bottom: 10px;">Alert Configuration</h4>
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" id="enable-suspicious-alerts" checked style="margin-right: 8px;">
+                            <span style="font-weight: 600;">Suspicious Activity Alerts</span>
+                        </label>
+                        <p style="font-size: 0.9em; color: #6c757d; margin: 0 0 10px 24px;">
+                            Alert when unusual sign-in patterns are detected
+                        </p>
+                    </div>
+
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" id="enable-geofence-alerts" checked style="margin-right: 8px;">
+                            <span style="font-weight: 600;">Geofence Violation Alerts</span>
+                        </label>
+                        <p style="font-size: 0.9em; color: #6c757d; margin: 0 0 10px 24px;">
+                            Alert when members sign in outside geofence boundaries
+                        </p>
+                    </div>
+
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" id="enable-device-alerts" checked style="margin-right: 8px;">
+                            <span style="font-weight: 600;">Device Anomaly Alerts</span>
+                        </label>
+                        <p style="font-size: 0.9em; color: #6c757d; margin: 0 0 10px 24px;">
+                            Alert when same device used multiple times or suspicious device patterns
+                        </p>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" id="enable-system-alerts" checked style="margin-right: 8px;">
+                            <span style="font-weight: 600;">System Health Monitoring</span>
+                        </label>
+                        <p style="font-size: 0.9em; color: #6c757d; margin: 0 0 10px 24px;">
+                            Monitor server status and connection health
+                        </p>
+                    </div>
+
+                    <button onclick="updateAlertSettings()"
+                        style="padding: 8px 15px; background: #3b82f6; color: white; border: none; border-radius: 6px;">
+                        Update Alert Settings
+                    </button>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin-bottom: 10px;">Active Alerts</h4>
+                    <button onclick="viewActiveAlerts()" style="margin-right: 10px;">🚨 View Alerts</button>
+                    <button onclick="clearAllAlerts()" style="margin-right: 10px;">🗑️ Clear All</button>
+                    <button onclick="testAlert()" style="margin-right: 10px;">🧪 Test Alert</button>
+
+                    <div id="alert-counter"
+                        style="display: inline-block; padding: 4px 8px; background: #dc2626; color: white; border-radius: 12px; font-size: 0.8em; font-weight: bold; margin-left: 10px;">
+                        0 Active
+                    </div>
+                </div>
+
+                <div id="alerts-container" class="hidden" style="margin-top: 15px;">
+                    <h4>Alert History</h4>
+                    <div id="alerts-list" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meeting Sign-In Form -->
+    <div id="meeting-signin" class="hidden">
+        <h2>🏥 Meeting Sign-In</h2>
+        <button onclick="backToMainMenu()" style="margin-bottom: 15px;">← Back to Main Menu</button>
+        <div id="location-help"
+            style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 0.9em; display: none;">
+            📱 <strong>Mobile users:</strong> If location isn't working, please:
+            <br>• Allow location access when prompted
+            <br>• <strong>Safari users:</strong> Go to Settings > Safari > Location Services > Website Settings
+            <br>• Check your browser settings for location permissions
+            <br>• Make sure you're within 100m of the meeting location
+            <br>• <strong>Safari may require HTTPS</strong> - try Chrome if issues persist
+        </div>
+        <p style="color: #6c757d; margin-bottom: 20px;">Welcome to CHOC! Please fill out your information below.</p>
+        <form id="meeting-signin-form">
+            <input type="text" id="meeting-full-name" placeholder="Full Name" required>
+            <input type="text" id="meeting-student-id" placeholder="Student ID" required>
+            <select id="meeting-grade-level" required>
+                <option value="">Select Grade Level</option>
+                <option value="9">9th Grade</option>
+                <option value="10">10th Grade</option>
+                <option value="11">11th Grade</option>
+                <option value="12">12th Grade</option>
+            </select>
+            <button type="submit">🧡 Sign In to Meeting</button>
+        </form>
+    </div>
+
+    <!-- Volunteer Service Sign-In/Out Form -->
+    <div id="volunteer-signin" class="hidden">
+        <h2>🤝 Volunteer Service</h2>
+        <button onclick="backToMainMenu()" style="margin-bottom: 15px;">← Back to Main Menu</button>
+
+        <div
+            style="background: #e0f2fe; border: 2px solid #0288d1; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 10px 0; color: #01579b;">📋 How to Use Volunteer Service:</h3>
+            <ol style="margin: 0; padding-left: 20px; color: #01579b;">
+                <li>Enter your Student ID below and click "Check Status"</li>
+                <li>If not signed in: Fill out the sign-in form</li>
+                <li>If already signed in: Use the sign-out form when you're done</li>
+            </ol>
+        </div>
+
+        <div id="volunteer-status-check"
+            style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <p style="margin: 0; color: #1e40af; font-weight: 600;">Enter your Student ID to check your status:</p>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <input type="text" id="volunteer-check-id" placeholder="Student ID"
+                    style="flex: 1; padding: 10px; border: 2px solid #3b82f6; border-radius: 6px;">
+                <button onclick="checkVolunteerStatus()"
+                    style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Check
+                    Status</button>
+            </div>
+        </div>
+
+        <div id="volunteer-signin-form-container" class="hidden">
+            <div id="location-help"
+                style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 0.9em; display: none;">
+                📱 <strong>Mobile users:</strong> If location isn't working, please:
+                <br>• Allow location access when prompted
+                <br>• <strong>Safari users:</strong> Go to Settings > Safari > Location Services > Website Settings
+                <br>• Check your browser settings for location permissions
+                <br>• Make sure you're within the meeting location for volunteer service
+                <br>• <strong>Safari may require HTTPS</strong> - try Chrome if issues persist
+            </div>
+            <p style="color: #6c757d; margin-bottom: 20px;">Sign in when you arrive for volunteer service.</p>
+            <form id="volunteer-signin-form">
+                <input type="text" id="volunteer-full-name" placeholder="Full Name" required>
+                <input type="text" id="volunteer-student-id" placeholder="Student ID" required>
+                <select id="volunteer-grade-level" required>
+                    <option value="">Select Grade Level</option>
+                    <option value="9">9th Grade</option>
+                    <option value="10">10th Grade</option>
+                    <option value="11">11th Grade</option>
+                    <option value="12">12th Grade</option>
+                </select>
+                <input type="text" id="volunteer-service-type"
+                    placeholder="Type of Service (e.g., Tutoring, Event Setup)" required>
+                <button type="submit">✅ Sign In for Volunteer Service</button>
+            </form>
+        </div>
+
+        <div id="volunteer-signout-form-container" class="hidden">
+            <div
+                style="padding: 15px; background: #ecfdf5; border-radius: 8px; border-left: 4px solid #10b981; margin-bottom: 15px;">
+                <h3 style="margin: 0 0 10px 0; color: #065f46;">Currently Signed In</h3>
+                <div id="current-volunteer-info"></div>
+            </div>
+            <p style="color: #6c757d; margin-bottom: 20px;">Sign out when you finish your volunteer service.</p>
+            <form id="volunteer-signout-form">
+                <textarea id="volunteer-summary" placeholder="Brief summary of work completed (optional)"
+                    style="width: 100%; height: 80px; padding: 12px; border: 2px solid #10b981; border-radius: 8px; resize: vertical; font-family: Arial, sans-serif;"></textarea>
+                <button type="submit" style="background: #dc2626; margin-top: 10px;">🚪 Sign Out from Volunteer
+                    Service</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu">
+        <!-- Welcome Header -->
+        <div class="welcome-header">
+            <div class="welcome-content">
+                <h2 class="welcome-title">🌸 Welcome to CHOC! 🌸</h2>
+                <p class="welcome-subtitle">Your friendly meeting sign-in portal</p>
+                <div class="welcome-decorations">
+                    <span class="decoration">🧸</span>
+                    <span class="decoration">⭐</span>
+                    <span class="decoration">�</span>
+                    <span class="decoration">🌟</span>
+                    <span class="decoration">🧸</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Cards Grid -->
+        <div class="status-grid">
+            <!-- Device Status Card -->
+            <div class="status-card device-card">
+                <div class="card-header">
+                    <span class="card-icon">📱</span>
+                    <h3 class="card-title">Device Status</h3>
+                </div>
+                <div class="card-content">
+                    <div id="device-status-text" class="status-text">Device Status: Checking...</div>
+                </div>
+            </div>
+
+            <!-- Sign-In Window Card -->
+            <div class="status-card window-card">
+                <div class="card-header">
+                    <span class="card-icon">📅</span>
+                    <h3 class="card-title">Meeting Sign-In Window</h3>
+                    <span id="window-status-indicator" class="status-badge">CLOSED</span>
+                </div>
+                <div class="card-content">
+                    <div class="time-info">
+                        <div class="time-row">
+                            <span class="time-label">Start Time:</span>
+                            <span id="display-start-time" class="time-value">Not Set</span>
+                        </div>
+                        <div class="time-row">
+                            <span class="time-label">End Time:</span>
+                            <span id="display-end-time" class="time-value">Not Set</span>
+                        </div>
+                    </div>
+                    <div id="time-remaining" class="time-remaining">
+                        <!-- Time remaining will be displayed here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Volunteer Status Card -->
+            <div class="status-card volunteer-card">
+                <div class="card-header">
+                    <span class="card-icon">🤝</span>
+                    <h3 class="card-title">Volunteer Service</h3>
+                    <span id="volunteer-status-indicator" class="status-badge volunteer-badge">AVAILABLE</span>
+                </div>
+                <div class="card-content">
+                    <div id="volunteer-count-display" class="volunteer-info">
+                        Sign in when you arrive, sign out when you leave
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location Status Card -->
+            <div class="status-card location-card">
+                <div class="card-header">
+                    <span class="card-icon">📍</span>
+                    <h3 class="card-title">Location Status</h3>
+                </div>
+                <div class="card-content">
+                    <div id="location-status-text" class="status-text">Location: Checking...</div>
+                    <button onclick="requestLocationPermission()" id="location-request-btn" class="location-btn">
+                        📍 Check My Location
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meeting Location Info -->
+        <div id="meeting-location-info" class="meeting-location-card">
+            <div class="location-header">
+                <span class="location-icon">🏢</span>
+                <span id="meeting-location-text">📍 Meeting Location: Not set</span>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-section">
+            <div class="staff-access-container">
+                <button onclick="showOfficerModal()" class="staff-access-btn">
+                    <span class="btn-icon">🔐</span>
+                    <span class="btn-text">Staff Access</span>
+                </button>
+            </div>
+
+            <div class="main-actions">
+                <button onclick="showMeetingSignIn()" id="meeting-btn" class="action-btn meeting-btn" disabled>
+                    <div class="btn-content">
+                        <span class="btn-icon">🏥</span>
+                        <div class="btn-text-container">
+                            <span class="btn-title">Meeting Sign-In</span>
+                            <span class="btn-subtitle">Join today's meeting</span>
+                        </div>
+                    </div>
+                </button>
+
+                <button onclick="showVolunteerSignIn()" id="volunteer-btn" class="action-btn volunteer-btn">
+                    <div class="btn-content">
+                        <span class="btn-icon">🤝</span>
+                        <div class="btn-text-container">
+                            <span class="btn-title">Volunteer Service</span>
+                            <span class="btn-subtitle">Track your service hours</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="homepage-footer">
+            <div class="footer-decorations">
+                <span>🌸</span>
+                <span>✨</span>
+                <span>🧸</span>
+                <span>💖</span>
+                <span>🌟</span>
+                <span>🧸</span>
+                <span>✨</span>
+                <span>🌸</span>
+            </div>
+            <p class="footer-text">Made with 💖 for BGHS CHOC • Room 316</p>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    <div id="message" class="message hidden"></div>
+
+    <!-- Help Button -->
+    <button id="help-btn" onclick="showHelpModal()" title="Help & FAQ">❓</button>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content help-modal-content">
+            <span class="close" onclick="closeHelpModal()">&times;</span>
+            <h2>🆘 Help & Frequently Asked Questions</h2>
+
+            <div class="faq-section">
+                <h3>📍 Location Services Issues</h3>
+                <div class="faq-item">
+                    <h4>Q: Why isn't my location working?</h4>
+                    <p><strong>Safari Users:</strong> Safari often blocks location services. Try these solutions:</p>
+                    <ul>
+                        <li>Use <strong>Google Chrome</strong> or <strong>Firefox</strong> instead</li>
+                        <li>Go to Settings → Safari → Location Services → Website Settings</li>
+                        <li>Make sure location is enabled for this website</li>
+                        <li>Try refreshing the page and allow location when prompted</li>
+                    </ul>
+                    <p><strong>All Browsers:</strong> Make sure to click "Allow" when prompted for location access.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>Q: I'm at the meeting but it says I'm not arrived?</h4>
+                    <p>This can happen due to GPS accuracy. Try:</p>
+                    <ul>
+                        <li>Moving closer to the center of the meeting room</li>
+                        <li>Going outside briefly to get better GPS signal</li>
+                        <li>Refreshing your location by tapping "Check My Location"</li>
+                        <li>Contact staff if the issue persists</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="faq-section">
+                <h3>📱 Sign-In Issues</h3>
+                <div class="faq-item">
+                    <h4>Q: Why can't I sign in?</h4>
+                    <p>Sign-in may be disabled for several reasons:</p>
+                    <ul>
+                        <li><strong>Time Window:</strong> Sign-in is only open during meeting hours</li>
+                        <li><strong>Device Already Used:</strong> This device has already been used to sign in</li>
+                        <li><strong>Location Required:</strong> You need to be at the meeting location</li>
+                        <li><strong>Sign-in Closed:</strong> Staff may have temporarily disabled sign-in</li>
+                    </ul>
+                </div>
+
+                <div class="faq-item">
+                    <h4>Q: I already signed in but want to sign in again?</h4>
+                    <p>Each device can only be used once per meeting. Use a different device or contact staff to reset
+                        device sign-ins.</p>
+                </div>
+            </div>
+
+            <div class="faq-section">
+                <h3>🔧 Technical Issues</h3>
+                <div class="faq-item">
+                    <h4>Q: The page isn't working properly?</h4>
+                    <p>Try these troubleshooting steps:</p>
+                    <ul>
+                        <li>Refresh the page (Ctrl+R or Cmd+R)</li>
+                        <li>Check your internet connection</li>
+                        <li>Try a different browser (Chrome recommended)</li>
+                        <li>Clear your browser cache and cookies</li>
+                        <li>Contact staff if problems continue</li>
+                    </ul>
+                </div>
+
+                <div class="faq-item">
+                    <h4>Q: What browsers work best?</h4>
+                    <p><strong>Recommended:</strong> Google Chrome, Firefox, Microsoft Edge</p>
+                    <p><strong>Limited Support:</strong> Safari (location issues common)</p>
+                    <p><strong>Not Recommended:</strong> Internet Explorer</p>
+                </div>
+            </div>
+
+            <div class="faq-section">
+                <h3>� Access Levels</h3>
+                <div class="faq-item">
+                    <h4>Q: What are the different access levels?</h4>
+                    <p><strong>Officer Access:</strong> Basic meeting management (sign-in windows, member lists,
+                        exports)</p>
+                    <p><strong>Administration Access:</strong> Advanced security features (location monitoring,
+                        geofencing)</p>
+                    <p>Contact your CHOC leadership for access codes if you need them.</p>
+                </div>
+            </div>
+
+            <div class="faq-section">
+                <h3>👥 Contact Information</h3>
+                <div class="faq-item">
+                    <h4>Still need help?</h4>
+                    <p>If you're still having issues:</p>
+                    <ul>
+                        <li>Ask a CHOC officer for assistance</li>
+                        <li>Show them this help screen</li>
+                        <li>They can help troubleshoot or manually sign you in</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Load Socket.IO from CDN for reliability -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        console.log('🔧 Socket.IO loaded from CDN');
+        if (typeof io === 'undefined') {
+            console.error('❌ Socket.IO still not available!');
+            alert('Socket.IO failed to load. Please check your internet connection.');
+        } else {
+            console.log('✅ Socket.IO ready');
+        }
+    </script>
+    <script src="script.js"></script>
+</body>
+
+</html>

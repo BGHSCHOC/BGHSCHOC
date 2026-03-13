@@ -1,0 +1,41 @@
+{
+    "name": "choc-meeting-signin",
+    "version": "2.0.0",
+    "description": "CHOC Meeting Sign-In Portal with Dual Sign-In System, Real-Time Sync, and Geofencing",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js",
+        "build": "echo 'No build step required - static files ready'",
+        "start:prod": "NODE_ENV=production node server.js",
+        "test": "echo 'No tests specified'"
+    },
+    "engines": {
+        "node": ">=18.0.0",
+        "npm": ">=8.0.0"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "socket.io": "^4.7.2"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1"
+    },
+    "keywords": [
+        "choc",
+        "meeting",
+        "signin",
+        "volunteer",
+        "hospital",
+        "realtime",
+        "geofencing",
+        "attendance"
+    ],
+    "author": "BGHS CHOC",
+    "license": "UNLICENSED",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/your-username/choc-meeting-signin.git"
+    },
+    "homepage": "https://github.com/your-username/choc-meeting-signin#readme"
+}
